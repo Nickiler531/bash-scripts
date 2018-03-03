@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#Validate if argument is file or not
+
+if [ $# -eq 0 ]; then
+	>&2 echo "${0} error: missing file name"
+	exit -1
+fi
+
+if [ -a ${1} ]; then
+	echo "yeah maracuyeah. ${1} exists"
+else
+	echo "pailander. ${1} doesn't exists"
+fi
+
