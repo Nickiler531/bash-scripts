@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ "" = "${1}" ]; then
+	echo "File missing"
+	exit -1
+fi
+
+var=$(echo ${1} | tr '[:upper:]' '[:lower:]')
+mkdir $var
