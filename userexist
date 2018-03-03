@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ "${1}" == "" ]; then
+	>&2 echo "${0} error. Missing input"
+	exit -1
+fi
+
+user=$(grep ${1} /etc/passwd | cut -d ':' -f 1)
+if [ "${1}" == "${user}" ]; then
+	echo "yeah maracuyeah. User ${1} exists."
+else
+	echo "pailander. User ${1} does not exists."
+fi

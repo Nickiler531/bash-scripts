@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ "" == "${1}" ]; then
+	>&2 echo "${0} error. Missing field"
+	exit -1
+fi
+
+user=$(who | grep ${1} | cut -d ' ' -f 1 | uniq)
+if [ "${user}" == "${1}" ]; then
+	echo "Yeah, user ${1} is logged"
+else
+	echo "Nope, user ${1} is not logged"
+fi 

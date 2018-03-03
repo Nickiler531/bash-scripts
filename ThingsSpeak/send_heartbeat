@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ "" == "${1}" ]; then
+        >&2 echo "${0} error. Missing field"
+        exit -1
+fi
+
+used_mem=$(free | grep Mem | awk '{print $3}')
+load_5avg=$(cat /proc/loadavg | awk '{print $2}')
+cpu_use=$(df | grep mapper | awk '{print $5}' | cut -d '%' -f 1)
+
+curl --silent --request POST --header "X-THINGSPEAKAPIKEY: $(cat /home/nickiler/bash-scripts/ThingsSpeak/api.key)" --data "field1=${1}&field2=${used_mem}&field3=${load_5avg}&field4=${cpu_use}" "http://api.thingspeak.com/update"

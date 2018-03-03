@@ -1,0 +1,11 @@
+#!/bin/bash
+#Show last time current user logged (without counting the current one)
+
+users=$(who | cut -d ' ' -f 1 | uniq)
+
+for i in $(echo ${users}); do
+	output=$(last ${i} | grep -v logged | head -1)
+	echo ${output}
+done
+
+
