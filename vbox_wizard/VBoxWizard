@@ -17,8 +17,8 @@ clean_up() {
 
 vm_name() {
   while [ 1 ]; do
-    dialog --inputbox "Enter your Virtual Box name:" 0 0 2>TEMP
-    VM_NAME=$(cat TEMP)
+    dialog --inputbox "Enter your Virtual Box name:" 0 0 2>$TEMP
+    VM_NAME=$(cat $TEMP)
     echo $VM_NAME
     AUX=$(vboxmanage list vms | grep -w ${VM_NAME}) 
     if [ "$AUX" = "" ]; then
@@ -29,30 +29,110 @@ vm_name() {
 }
 
 vm_cores() {
+  #First calculate how many cpus are available (1/2 CPUs in the machine)
   ncore=$(cat /proc/cpuinfo | grep processor | wc -l)
+  cpupercore=$(cat /proc/cpuinfo | grep "cpu cores" | uniq | awk '{print $4}')
   hcore=$(echo $((ncore/2)))
+  hcpu=$((hcore*cpupercore))
 
   OPTIONS=''
-  for i in `seq 1 1 2`; do 
-    OPTIONS="${OPTIONS} ${i} ${i}Core off"
+  for i in $(seq 2 1 $hcpu); do 
+    OPTIONS="${OPTIONS} ${i} ${i}Cores"
   done
 
-  dialog --backtitle "Number of cores" --radiolist "Select number of cores:" 10 40 4 $OPTIONS 2>TEMP
-  VM_CORES=$(cat TEMP)
+  dialog --backtitle "Number of cores" --menu "Select number of cores:" 0 0 0 1 1Core $OPTIONS 2>$TEMP
+  VM_CORES=$(cat $TEMP)
 } 
 
 vm_os() {
-  VM_FAMILY=vboxmanage list ostypes | grep 'Family ID:' | uniq | awk '{print $3}'  
+  #VM_FAMILIES=$(vboxmanage list ostypes | grep 'Family ID:' | uniq -c | awk '{print $4"("$1")"}')
+  VM_FAMILIES=($(vboxmanage list ostypes | grep 'Family ID:' | uniq -c | awk '{print $4}'))
+ 
+  OPTIONS=""
+  for i in $(seq 1 ${#VM_FAMILIES[@]}); do
+    OPTIONS="$OPTIONS $i ${VM_FAMILIES[$((i-1))]}"
+  done
+  
+  dialog --menu "Choose OS Family:" 0 0 0 $OPTIONS 2>$TEMP
+  SELECTED=$(( $(cat $TEMP) - 1 ))
+  VM_FAMILY=${VM_FAMILIES[$SELECTED]}
+  
+  VM_OSS=($(vboxmanage list ostypes | tr -s ' ' | grep -B2 "Family ID: $VM_FAMILY" | grep "ID:" | grep -v "Family" | awk '{print $2}'))
 
+  OPTIONS=""
+  for i in $(seq 1 ${#VM_OSS[@]}); do
+    OPTIONS="$OPTIONS ${i} ${VM_OSS[$((i-1))]}"
+  done
+
+  dialog --menu "Choose OS:" 0 0 0 $OPTIONS 2>$TEMP
+  SELECTED=$(( $(cat $TEMP) - 1 ))
+  VM_OS=${VM_OSS[$SELECTED]}
 }
 
+vm_hd()
+{
+  dialog --menu "Choose HD size(MB):" 0 0 0 1 500 2 1024 3 2048 4 4096 5 8192 2>$TEMP
+  SEL=$(cat $TEMP)
+  case $SEL in
+  1)
+    HDSIZE=500
+    ;;
+  2)
+    HDSIZE=1024
+    ;;
+  3)
+    HDSIZE=2048
+    ;;
+  4)
+    HDSIZE=4096
+    ;;
+  5)
+    HDSIZE=8190
+  esac
+}
+
+vm_ram()
+{
+  dialog --menu "Choose RAM percentage:" 0 0 0 1 "10%" 2 "25%" 3 "50%" 4 "70%" 2>$TEMP
+  SEL=$(cat $TEMP)
+  TOTAL_RAM=$(free -m | grep Mem | awk '{print $2}')
+  case $SEL in
+  1)
+    RAMSIZE=$(( $TOTAL_RAM * 10/100 ))
+    ;;
+  2)
+    RAMSIZE=$(( $TOTAL_RAM * 25/100 ))
+    ;;
+  3)
+    RAMSIZE=$(( $TOTAL_RAM * 50/100 ))
+    ;;
+  4)
+    RAMSIZE=$(( $TOTAL_RAM * 70/100 ))
+    ;;
+  esac
+}
 
 dialog --title 'VirtualBox Wizard' --msgbox 'Welcome to the Virtual Box Wizard' 0 0
 vm_name
 vm_cores
 vm_os
+vm_hd
+vm_ram
 
-clean_up
+vboxmanage createvm --name ${VM_NAME} --ostype ${VM_OS} --register
+vboxmanage modifyvm ${VM_NAME} --memory ${RAMSIZE}
+vboxmanage modifyvm ${VM_NAME} --cpus ${VM_CORES}
+vboxmanage createhd --filename ${HOME}/VirtualBox\ VMs/${VM_NAME}/${VM_NAME}.vdi --size ${HDSIZE} --format VDI
+vboxmanage storagectl ${VM_NAME} --name "SATA Controller" --add sata --controller IntelAhci 
+vboxmanage storageattach ${VM_NAME} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium ${HOME}/VirtualBox\ VMs/${VM_NAME}/${VM_NAME}.vdi
+
+#clean_up
+
+echo $VM_NAME
+echo $VM_CORES
+echo $VM_OS
+echo $HDSIZE
+echo $RAMSIZE
 
 #A='1 386SX off 2 386DX on 3 486SX off 4 486DX off'
 
