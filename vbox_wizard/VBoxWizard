@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#Strings needed
+STR_WELCOME_MSG='Welcome to the Jumgle' 
+lala='Hello la'
+
+#Temporary file
+TEMP=/tmp/VBW_answer
+
+#Clean up and exit
+clean_up() {
+ clear
+ rm -f $TEMP
+}
+
+
+
+vm_name() {
+  while [ 1 ]; do
+    dialog --inputbox "Enter your Virtual Box name:" 0 0 2>TEMP
+    VM_NAME=$(cat TEMP)
+    echo $VM_NAME
+    AUX=$(vboxmanage list vms | grep -w ${VM_NAME}) 
+    if [ "$AUX" = "" ]; then
+      break 
+    fi
+    dialog --infobox "Machine ${VM_NAME} already exists" 10 30 ; sleep 2
+  done
+}
+
+vm_cores() {
+  ncore=$(cat /proc/cpuinfo | grep processor | wc -l)
+  hcore=$(echo $((ncore/2)))
+
+  OPTIONS=''
+  for i in `seq 1 1 2`; do 
+    OPTIONS="${OPTIONS} ${i} ${i}Core off"
+  done
+
+  dialog --backtitle "Number of cores" --radiolist "Select number of cores:" 10 40 4 $OPTIONS 2>TEMP
+  VM_CORES=$(cat TEMP)
+} 
+
+vm_os() {
+  VM_FAMILY=vboxmanage list ostypes | grep 'Family ID:' | uniq | awk '{print $3}'  
+
+}
+
+
+dialog --title 'VirtualBox Wizard' --msgbox 'Welcome to the Virtual Box Wizard' 0 0
+vm_name
+vm_cores
+vm_os
+
+clean_up
+
+#A='1 386SX off 2 386DX on 3 486SX off 4 486DX off'
+
+#dialog --backtitle "CPU Selection" --radiolist "Select CPU type:" 10 40 4 $A
+
